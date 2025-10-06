@@ -1,10 +1,9 @@
 name: Repack Webex .deb (XWayland + AppArmor)
 
 on:
-  workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [ master ]
+  workflow_dispatch:
   schedule:
     - cron: '0 6 * * 1'  # Every Monday morning
 
@@ -26,8 +25,24 @@ jobs:
       - name: Repack with patches
         run: bash scripts/repack-webex.sh
 
-      - name: Upload rebuilt .deb
+      - name: Upload rebuilt .deb as artifact
         uses: actions/upload-artifact@v4
         with:
           name: Webex-fixed-deb
           path: Webex-fixed.deb
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Webex Repack $(date +'%Y-%m-%d')"
+          tag_name: "webex-$(date +'%Y-%m-%d')"
+          body: |
+            🚀 **Automated Webex Repack Build**
+            - Based on the latest official Cisco `.deb`
+            - Forces X11/XWayland mode
+            - Adds AppArmor profile at `/etc/apparmor.d/Webex`
+
+            ✅ Build Date: $(date +'%Y-%m-%d')
+          files: Webex-fixed.deb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
