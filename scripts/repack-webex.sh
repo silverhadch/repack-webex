@@ -27,9 +27,6 @@ EOF
 find . -type f -name '*.desktop' -exec sed -i \
   's|^Exec=.*|Exec=env WAYLAND_DISPLAY= XDG_SESSION_TYPE=x11 QT_QPA_PLATFORM=xcb GDK_BACKEND=x11 /opt/Webex/bin/CiscoCollabHost %U|' {} \;
 
-# Optionally bump version
-sed -i 's/^Version:.*/Version: 44.7.0-xwayland1/' DEBIAN/control
-
 # Repack .deb
 fakeroot dpkg-deb -b . ../Webex-fixed.deb
 
