@@ -6,8 +6,9 @@ cd webex-deb
 
 # Extract original .deb
 ar x ../Webex.deb
-tar xf data.tar.*
-tar xf control.tar.*
+tar xf data.tar.*       # unpack data files
+mkdir -p DEBIAN
+tar xf control.tar.* -C DEBIAN  # control files must go inside DEBIAN/
 
 # Add custom AppArmor profile
 mkdir -p etc/apparmor.d
@@ -30,5 +31,4 @@ find . -type f -name '*.desktop' -exec sed -i \
 # Repack .deb
 fakeroot dpkg-deb -b . ../Webex-fixed.deb
 
-echo "✅ Rebuilt Webex-fixed.deb ready!"
-
+echo "Rebuilt Webex-fixed.deb ready!"

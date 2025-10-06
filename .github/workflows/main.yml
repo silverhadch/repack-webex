@@ -2,6 +2,9 @@ name: Repack Webex .deb (XWayland + AppArmor)
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '0 6 * * 1'  # Every Monday morning
 
