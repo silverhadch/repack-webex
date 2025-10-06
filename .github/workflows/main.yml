@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0 6 * * 1'  # Every Monday morning
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
