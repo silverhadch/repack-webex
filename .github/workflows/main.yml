@@ -3,12 +3,14 @@ name: Repack Webex .deb (XWayland + AppArmor)
 on:
   push:
     branches: [ master ]
+    tags:
+      - "webex-*"
   workflow_dispatch:
   schedule:
     - cron: '0 6 * * 1'  # Every Monday morning
 
 permissions:
-  contents: write
+  contents: write  # Required by action-gh-release to publish releases
 
 jobs:
   build:
@@ -28,6 +30,9 @@ jobs:
       - name: Repack with patches
         run: bash scripts/repack-webex.sh
 
+      - name: Generate SHA256 checksum
+        run: sha256sum Webex-fixed.deb | tee checksum.txt
+
       - name: Upload rebuilt .deb as artifact
         uses: actions/upload-artifact@v4
         with:
@@ -36,16 +41,24 @@ jobs:
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
         with:
-          name: "Webex Repack $(date +'%Y-%m-%d')"
-          tag_name: "webex-$(date +'%Y-%m-%d')"
+          name: "Webex Repack - ${{ github.ref_name }}"
+          tag_name: "${{ github.ref_name || format('webex-{0}', github.run_number) }}"
           body: |
             🚀 **Automated Webex Repack Build**
-            - Based on the latest official Cisco `.deb`
-            - Forces X11/XWayland mode
-            - Adds AppArmor profile at `/etc/apparmor.d/Webex`
+            ✅ Built on: ${{ github.run_id }}
+            
+            **Includes:**
+            - Forces Webex to run under XWayland
+            - Adds AppArmor profile `/etc/apparmor.d/Webex`
+            - Automatic rebuild and repackaging of latest .deb
 
-            ✅ Build Date: $(date +'%Y-%m-%d')
-          files: Webex-fixed.deb
+            **SHA256 checksum:**
+            ```
+            ${{ steps.checksum.outputs.sha256 }}
+            ```
+          files: |
+            Webex-fixed.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
