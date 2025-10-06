@@ -53,12 +53,7 @@ GitHub Actions will:
 
 ## 📦 Usage
 
-After the workflow finishes, download the artifact from the **Actions tab**:
-
-```
-Webex-fixed-deb/Webex-fixed.deb
-```
-
+After the workflow finishes, download the artifact from the **Releases**:
 Then install it locally:
 
 ```bash
@@ -74,14 +69,6 @@ sudo apt install ./Webex-fixed.deb
 scripts/repack-webex.sh      # Repack and patch script
 README.md                    # You are here
 ```
-
----
-
-## 💡 Future Improvements
-
-* Auto-publish the rebuilt `.deb` as a GitHub Release
-* Add version tagging to match upstream Webex builds
-* Integrate automatic checksum validation for extra safety
 
 ---
 
