@@ -10,15 +10,22 @@ on:
     - cron: '0 6 * * 1'  # Every Monday morning
 
 permissions:
-  contents: write  # Required by action-gh-release to publish releases
+  contents: write  # Required for tagging and GitHub release creation
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y wget fakeroot dpkg-dev
@@ -28,10 +35,15 @@ jobs:
           wget -O Webex.deb "https://binaries.webex.com/WebexDesktop-Ubuntu-Official-Package/Webex.deb"
 
       - name: Repack with patches
-        run: bash scripts/repack-webex.sh
+        run: |
+          set -e
+          bash scripts/repack-webex.sh
 
       - name: Generate SHA256 checksum
-        run: sha256sum Webex-fixed.deb | tee checksum.txt
+        id: checksum
+        run: |
+          HASH=$(sha256sum Webex-fixed.deb | tee checksum.txt | awk '{print $1}')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
       - name: Upload rebuilt .deb as artifact
         uses: actions/upload-artifact@v4
@@ -42,16 +54,36 @@ jobs:
       - name: Create version tag
         id: tag
         run: |
-          TAG="webex-$(date +'%Y-%m-%d')"
-          git tag "$TAG"
-          git push origin "$TAG"
+          # Try to read Webex version, otherwise use date
+          VERSION=$(dpkg-deb -f Webex.deb Version 2>/dev/null || echo "")
+          if [ -n "$VERSION" ]; then
+            TAG="webex-${VERSION}"
+          else
+            TAG="webex-$(date +'%Y-%m-%d')"
+          fi
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping creation."
+          else
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Upload rebuilt .deb as release
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Webex-fixed.deb
+          files: |
+            Webex-fixed.deb
+            checksum.txt
           tag_name: ${{ steps.tag.outputs.tag }}
           name: "Webex rebuilt ${{ steps.tag.outputs.tag }}"
-          body: "Automated rebuild of Cisco Webex with patches."
+          body: |
+            Automated rebuild of Cisco Webex with patches.
+
+            **SHA256 checksum**
+            ```
+            ${{ steps.checksum.outputs.hash }}
+            ```
           generate_release_notes: true
