@@ -39,26 +39,19 @@ jobs:
           name: Webex-fixed-deb
           path: Webex-fixed.deb
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
-        with:
-          name: "Webex Repack - ${{ github.ref_name }}"
-          tag_name: "${{ github.ref_name || format('webex-{0}', github.run_number) }}"
-          body: |
-            🚀 **Automated Webex Repack Build**
-            ✅ Built on: ${{ github.run_id }}
-            
-            **Includes:**
-            - Forces Webex to run under XWayland
-            - Adds AppArmor profile `/etc/apparmor.d/Webex`
-            - Automatic rebuild and repackaging of latest .deb
+      - name: Create version tag
+        id: tag
+        run: |
+          TAG="webex-$(date +'%Y-%m-%d')"
+          git tag "$TAG"
+          git push origin "$TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
-            **SHA256 checksum:**
-            ```
-            ${{ steps.checksum.outputs.sha256 }}
-            ```
-          files: |
-            Webex-fixed.deb
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload rebuilt .deb as release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Webex-fixed.deb
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: "Webex rebuilt ${{ steps.tag.outputs.tag }}"
+          body: "Automated rebuild of Cisco Webex with patches."
+          generate_release_notes: true
